@@ -12,5 +12,8 @@
     "nodejs"
   ],
   "author": "namra",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.0.0"
+  }
 }
