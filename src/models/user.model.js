@@ -146,3 +146,4 @@ userSchema.methods.generateRefreshToken = function(){
 }
 
 export const User = mongoose.model('User',userSchema);  //users name sai store hoga db mai 'lowercase and plural'
+//yai jo user hai yai apkai db sai direct contact kar sakta hai ku kai yai moongoose kai through bana hai
