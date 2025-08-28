@@ -3,6 +3,20 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+
+const generteAccessAndRefreshTokens = async(userId)=>{
+    try {
+        const user = await User.findOne(userId);  //user ka document object dhondho by id
+        const accessToken = user.generateAccessToken(); //access token generate kro
+        const refreshToken = user.generateRefreshToken(); //refresh token generate kro
+        user.refreshToken = refreshToken; //eerated refresh token ko user document mai dalo
+        await user.save({ validateBeforeSave: false }); //usko db mai save kro ({ validateBeforeSave: false } so that it dont kick password to the db)
+        return {accessToken,refreshToken}; //access aur refresh ko return kro
+    } catch (error) {
+        throw new ApiError(500,"something went wrong while generating access and refresh token");
+    }
+}
+
 const registerController=asyncHandler(async (req,res)=>{  //aik jo wrapper banaya tha utility mai wo use kar rahai yaha pai yahi sai dekh lo bohot jagah kaam anai wala hai
     //we will get data from the frontend
     const {username,email,fullName,password}=req.body;
@@ -83,11 +97,11 @@ const loginController = asyncHandler(async(req,res)=>{
     //send cookie
 
     //req body -> data 
-    const {username , email , password} = req.body
+    const {username , email , password} = req.body;
 
     //username or email
     if(!username || !email){
-        throw new ApiError(400,"Please provide all credentials")
+        throw new ApiError(400,"Please provide all credentials");
     }
     
     //find the user
@@ -96,15 +110,17 @@ const loginController = asyncHandler(async(req,res)=>{
     })
 
     if(!user){
-        new ApiError(400,"user doesnot exist")
+        new ApiError(400,"user doesnot exist");
     }
 
     //password check 
-    const isPasswordValid = await user.isPasswordCorrect(password)
+    const isPasswordValid = await user.isPasswordCorrect(password);
 
     if(!isPasswordValid){
-        throw new ApiError(401,"invalid credentials")
+        throw new ApiError(401,"invalid credentials");
     }
 
+    //injecting tokens method that we made above in login
+    const { accessToken,refreshToken } = await generteAccessAndRefreshTokens(user._id);
 })
 export default registerController;
