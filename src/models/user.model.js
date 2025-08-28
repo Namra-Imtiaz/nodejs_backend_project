@@ -113,6 +113,8 @@ userSchema.pre("save",async function(next){    //save honai sai just pehlai pass
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password)   //bcrypt.compare(clear text password,encrypted password)
     //it will return you result in true and false format boolean
+    //password: jo user nai field mai likha
+    //this.password: jo hashed password hai data base mai
 }
 
 //same ap access token ko generate karnai ka bhi method use karsaktai ho apko jitnai methods chhaiye utnai ap apnai schema mai inject kar saktai ho

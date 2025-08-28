@@ -74,4 +74,37 @@ const registerController=asyncHandler(async (req,res)=>{  //aik jo wrapper banay
 }
 )
 
+const loginController = asyncHandler(async(req,res)=>{
+    //req body -> data  *
+    //username or email 
+    //find the user
+    //password check 
+    //generate access and refresh token (we need to apply this many times,we will make a method for this so that whenever u need them u can call it)
+    //send cookie
+
+    //req body -> data 
+    const {username , email , password} = req.body
+
+    //username or email
+    if(!username || !email){
+        throw new ApiError(400,"Please provide all credentials")
+    }
+    
+    //find the user
+    const user = await User.findOne({
+        $or:[{username},{email}]  //ya to email dhoodh do ya username 
+    })
+
+    if(!user){
+        new ApiError(400,"user doesnot exist")
+    }
+
+    //password check 
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if(!isPasswordValid){
+        throw new ApiError(401,"invalid credentials")
+    }
+
+})
 export default registerController;
