@@ -123,7 +123,7 @@ userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
             //payload ka name: database sai jo araha
-            _id:this._id,
+            _id:this._id,    //jab apnai jwt ka model banaya tha tab underscore id he naam rakha tha
             email:this.email,
             username:this.username,
             fullName:this.fullName

@@ -122,5 +122,76 @@ const loginController = asyncHandler(async(req,res)=>{
 
     //injecting tokens method that we made above in login
     const { accessToken,refreshToken } = await generteAccessAndRefreshTokens(user._id);
+
+    //send cookies
+    //is chotai walai user mai kuch unwanted fields bhi hain jasiay password and refresh token
+    //laikin refresh token empty hoga ju kai generate to bad mai kia hai to tumhare pas us user ka refrence hai jis ka access token empty hai
+    //ap chaho to usko object sai update kardo warna aik aur db query mar do
+    //ab yaha ap ko decide karna hai db ko do baar call karna expensive operation hai, agar nahi hai to karlain warna object wala karlain
+    const loggedInUser = User.findOne(user._id).select("-password -refreshToken");
+
+    //cookies jab bhi ap bhejtai ho to kuch options design kartai ho,nothing just object hota hai
+    const options = {  //by default sab kai pas access hota hai cookies ka but options set karnai sai only server can change cookies
+        httpOnly: true,
+        secure: true
+    }
+    // 1. Authentication ke liye Cookies kyu?
+
+    // Jab user login karta hai, server usko ek token deta hai (jaise JWT).
+
+    // Ab problem ye hai → ye token frontend ko kahan store karna hai?
+
+    // Do options hote hain:
+
+    // localStorage / sessionStorage
+
+Cookies
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser,accessToken,refreshToken  //hosakta hai user khud sai accesstoken aur refreshtoken ko save karna chah raha hai not a good practice but hosakta hai wo localstorage mai save karna chah raha ho
+            },
+            "User logged in successfully"
+        )
+    )
+
+
 })
-export default registerController;
+
+const logoutController=asyncHandler(async(req,res)=>{
+    //logout kai liyai cookies clear karni hon gi
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken: undefined
+            }
+        },
+        {
+            new:true  //undefined wala object chahiye ab without refreshtoken old walai mai to refreshtoken hai new walai mai nahi hoga 
+        }
+    )
+
+    const options = {  //by default sab kai pas access hota hai cookies ka but options set karnai sai only server can change cookies
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(
+        new ApiResponse(200,{},"user logges out successfully")
+    )
+})
+export {
+    registerController,
+    loginController,
+    logoutController
+};
