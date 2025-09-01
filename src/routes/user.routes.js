@@ -2,6 +2,7 @@ import { Router } from "express";
 import {registerController,loginController, logoutController } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { refreshAccessTokenController } from "../controllers/user.controller.js";
 
 const router=Router();  //jis tarah express ko initialize kartai ho app variable mai isi tarah router ko bhi kartai hain
 router.route('/register').post(
@@ -22,6 +23,8 @@ router.route('/login').post(loginController);
 
 //SECURE ROUTES
 router.route("/logout").post(verifyJWT,logoutController);
+
+router.route("/refresh-token").post(refreshAccessTokenController);
 
 
 
