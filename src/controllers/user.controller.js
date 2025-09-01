@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { jwt } from "jsonwebtoken";
 
 const generteAccessAndRefreshTokens = async(userId)=>{
     try {
@@ -100,7 +101,7 @@ const loginController = asyncHandler(async(req,res)=>{
     const {username , email , password} = req.body;
 
     //username or email
-    if(!username || !email){
+    if(!(username || email)){
         throw new ApiError(400,"Please provide all credentials");
     }
     
@@ -128,7 +129,7 @@ const loginController = asyncHandler(async(req,res)=>{
     //laikin refresh token empty hoga ju kai generate to bad mai kia hai to tumhare pas us user ka refrence hai jis ka access token empty hai
     //ap chaho to usko object sai update kardo warna aik aur db query mar do
     //ab yaha ap ko decide karna hai db ko do baar call karna expensive operation hai, agar nahi hai to karlain warna object wala karlain
-    const loggedInUser = User.findOne(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findOne(user._id).select("-password -refreshToken"); ;
 
     //cookies jab bhi ap bhejtai ho to kuch options design kartai ho,nothing just object hota hai
     const options = {  //by default sab kai pas access hota hai cookies ka but options set karnai sai only server can change cookies
@@ -145,7 +146,7 @@ const loginController = asyncHandler(async(req,res)=>{
 
     // localStorage / sessionStorage
 
-Cookies
+
     return res
     .status(200)
     .cookie("accessToken",accessToken,options)
@@ -154,8 +155,9 @@ Cookies
         new ApiResponse(
             200,
             {
-                user: loggedInUser,accessToken,refreshToken  //hosakta hai user khud sai accesstoken aur refreshtoken ko save karna chah raha hai not a good practice but hosakta hai wo localstorage mai save karna chah raha ho
-            },
+        user: loggedInUser, // ab chalega ✅
+        accessToken,
+        refreshToken            },
             "User logged in successfully"
         )
     )
@@ -187,9 +189,19 @@ const logoutController=asyncHandler(async(req,res)=>{
     .clearCookie("accessToken",options)
     .clearCookie("refreshToken",options)
     .json(
-        new ApiResponse(200,{},"user logges out successfully")
+        new ApiResponse(200,{},"user logged out successfully")
     )
 })
+
+const refreshTokenController = asyncHandler(async(req,res)=>{
+    const incomingRefreshToken = req.cookies.refreshToken;
+    if(!incomingRefreshToken){
+        throw new ApiError(401,'Unauthorized Request')
+    }
+    const dbRefreshToken = jwt.refreshToken
+})
+
+
 export {
     registerController,
     loginController,

@@ -2,13 +2,13 @@
 //MAIANI LOG IN KARTAI WAQT ACCESS TOKEN AUR REFRESH TOKEN DIA THAI USER KO USI KE BASIS PER TO VERIFY KARNA 
 // HAI WO SAHI USER HAI BHI YA NAHI,WHAI TO APKA TRUE LOGIN HUA
 
-import { ApiError } from "../utils/ApiError";
-import asyncHandler from "../utils/asyncHandler";
+import { ApiError } from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import jwt from 'jsonwebtoken';
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
 
 //AGAR TOKEN SAHI HAI TO HUM USMAI AIK NAYA OBJECT ADD KARDAIN GAI REQUEST MAI req.user
-export const verifyJWT = asyncHandler(async(removeEventListener,resizeBy,next)=>{
+export const verifyJWT = asyncHandler(async(req,res,next)=>{
    try {
      //token ka access kaisay lao gai? req kai pas cookies ka access hai cookies sai toeksn nikal lo
      //ho skata hai yaha sai na aye req.cookies?.accessToken , user apko custom header bhej raha ho
