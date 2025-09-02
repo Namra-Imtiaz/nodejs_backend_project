@@ -231,10 +231,108 @@ const refreshAccessTokenController = asyncHandler(async(req,res)=>{
     }
 })
 
+const changeCurrentPasswordController = asyncHandler(async(req,res)=>{
+    const {oldPassword , newPassword} = req.body;
+    const user = await User.findById(req.user?._id);
+    const passCorrect = user.isPasswordCorrect(oldPassword);
+    if(!passCorrect){
+        throw new ApiError(400,'User is unauthorized');
+    }
+    user.password = newPassword;
+    await User.save({validateBeforeSave: false});
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,{},'Password changed Successfully'))
+})
+
+const getCurrentUserController = asyncHandler(async(req,res)=>{
+    return res
+    .status(200)
+    .json(new ApiResponse(200,req.user,'Current User Fetched Successfully'))
+})
+
+const updateUserController = asyncHandler(async(req,res)=>{
+    const {fullName , email} = req.body;
+
+    if(!(fullName || email)){
+        throw new ApiError(400 , "All Fields are required")
+    }
+
+    User.findByIdAndUpdate(
+        req.user._id,
+        {$set:{
+            fullName : fullName,
+            email : email
+        }},
+        {new: true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,req.user,"User details updated successfully"))
+})
+//files update karnai kai liyai hamesha alag controller banao warna bar bbar text bhi update hota rahai ga
+//iskai liyai 2 middleware lagtai hain aik multer and dosra user logged in hai bhi ya nhai iska khayal routing mai rakhna abhi controller likho
+
+const updateAvatar = asyncHandler(async(req,res)=>{
+    const avatarLocalPath = req.file?.avatar;
+    if(!avatarLocalPath){
+        throw new ApiError(400,"Avatar file is missing")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!avatar.url){
+        throw new ApiError(400,"error while uploading avatar on cloudinary")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {$set:{
+            avatar:avatar.url
+        }},
+        {new:true}
+    ).select("-password")
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,req.user,'user avatar updated successfully'))
+})
+
+const updateCoverImage = asyncHandler(async(req,res)=>{
+    const coverImageLocalPath = req.file?.coverImage;
+    if(!coverImageLocalPath){
+        throw new ApiError(400,"cover image file is missing")
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if(!coverImage.url){
+        throw new ApiError(400,"error while uploading cover image on cloudinary")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {$set:{
+            coverImage:coverImage.url
+        }},
+        {new:true}
+    ).select("-password")
+
+     res
+    .status(200)
+    .json(new ApiResponse(200,req.user,'user cover image updated successfully'))
+})
+
 
 export {
     registerController,
     loginController,
     logoutController,
-    refreshAccessTokenController
+    refreshAccessTokenController,
+    changeCurrentPasswordController,
+    getCurrentUserController,
+    updateAvatar,
+    updateCoverImage
 };
