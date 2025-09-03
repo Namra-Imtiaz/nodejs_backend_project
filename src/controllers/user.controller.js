@@ -259,7 +259,7 @@ const updateUserController = asyncHandler(async(req,res)=>{
         throw new ApiError(400 , "All Fields are required")
     }
 
-    User.findByIdAndUpdate(
+    const user = User.findByIdAndUpdate(
         req.user._id,
         {$set:{
             fullName : fullName,
