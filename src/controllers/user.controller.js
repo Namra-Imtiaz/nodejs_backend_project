@@ -325,6 +325,89 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200,req.user,'user cover image updated successfully'))
 })
 
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+    //param sai username nikalo channel ka
+    const {username} = req.params  //us channel ka name url sai nikalo 
+
+    //check kro username hai bhi ya nahi 
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+    }
+
+    //User.find({username})   aisay bhi username kai basis per document find karo to masla nahi hai phir id kai basis per aggragation lagao gai
+    //yaha per alternatively match laga saktai hain wo sarai documents mai sai aik document khud he match kar lai ga
+    const channel = User.aggregate([
+            { 
+                $match:{
+                username:username?.toLowerCase()
+                }
+            },
+            {   
+                $lookup:{
+                from:"subscriptions",  //model mai name sab lower case mai hojata and plural hojata
+                localField:"_id",
+                foreignField:"channel",  //is sai milai gai subscribers
+                as:"subscribers"}
+            },
+            {   
+                $lookup:{
+                from:"subscriptions",  //model mai name sab lower case mai hojata and plural hojata
+                localField:"_id",
+                foreignField:"subscriber",  //is sai milai gai mainai kitno ko subscribe kia hua
+                as:"subscribedTo"}
+            },
+            {
+                $addFields:{
+                    subscribersCount:{
+                        size:"$subscribers"
+                    }
+                },
+                    channelsSunscribedToCount:{
+                        size:"$subscribedTo"
+                    }
+            },
+            {
+                isSubscribed:{  //yai subscribed wala button hai 
+                    $cond:{
+                        if: {$in: [req.user?._id,"$subscribers.subscriber"]},  //in ka matlab check karo present hai ya nahi 
+                        //ab ismai idhar 'subscribers.subscriber' sai check karo yai 'req.user?._id' hai ya nahi
+                        //in arrays mai bhi dekh laita hai aur objects mai bhi dekh laita hai
+                        then:true,   //agar mil jae user to true mai dal do
+                        else:false  //agar nahi milai to false mai dal do
+
+                    }
+                }
+            },
+            {
+                $project:{  //ab jis jis cheez ke zarorat hai profile per wahi frontend ko do bas
+                    fullName:1,
+                    username:1,
+                    subscribersCount:1,
+                    channelsSunscribedToCount:1,
+                    avatar:1,
+                    coverImage:1,
+                    isSubscribed:1
+
+                }
+            }
+
+
+        
+    
+
+    ])
+
+    if(!channel?.length){
+        throw new ApiError(404,"channel doesnt exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"channel fetched successfully")
+    )
+})
+
 
 export {
     registerController,
@@ -334,5 +417,6 @@ export {
     changeCurrentPasswordController,
     getCurrentUserController,
     updateAvatar,
-    updateCoverImage
+    updateCoverImage,
+    getUserChannelProfile
 };
