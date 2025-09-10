@@ -1,10 +1,11 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { User, User } from "../models/user.model.js";
+import { User} from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { pipeline } from "stream";
+import mongoose from "mongoose";
 
 const generteAccessAndRefreshTokens = async(userId)=>{
     try {
@@ -171,8 +172,8 @@ const logoutController=asyncHandler(async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -240,7 +241,7 @@ const changeCurrentPasswordController = asyncHandler(async(req,res)=>{
         throw new ApiError(400,'User is unauthorized');
     }
     user.password = newPassword;
-    await User.save({validateBeforeSave: false});
+    await user.save({validateBeforeSave: false});
 
     return res
     .status(200)
@@ -337,66 +338,57 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
 
     //User.find({username})   aisay bhi username kai basis per document find karo to masla nahi hai phir id kai basis per aggragation lagao gai
     //yaha per alternatively match laga saktai hain wo sarai documents mai sai aik document khud he match kar lai ga
-    const channel = User.aggregate([
-            { 
-                $match:{
-                username:username?.toLowerCase()
-                }
-            },
-            {   
-                $lookup:{
-                from:"subscriptions",  //model mai name sab lower case mai hojata and plural hojata
-                localField:"_id",
-                foreignField:"channel",  //is sai milai gai subscribers
-                as:"subscribers"}
-            },
-            {   
-                $lookup:{
-                from:"subscriptions",  //model mai name sab lower case mai hojata and plural hojata
-                localField:"_id",
-                foreignField:"subscriber",  //is sai milai gai mainai kitno ko subscribe kia hua
-                as:"subscribedTo"}
-            },
-            {
-                $addFields:{
-                    subscribersCount:{
-                        size:"$subscribers"
-                    }
-                },
-                    channelsSunscribedToCount:{
-                        size:"$subscribedTo"
-                    }
-            },
-            {
-                isSubscribed:{  //yai subscribed wala button hai 
-                    $cond:{
-                        if: {$in: [req.user?._id,"$subscribers.subscriber"]},  //in ka matlab check karo present hai ya nahi 
-                        //ab ismai idhar 'subscribers.subscriber' sai check karo yai 'req.user?._id' hai ya nahi
-                        //in arrays mai bhi dekh laita hai aur objects mai bhi dekh laita hai
-                        then:true,   //agar mil jae user to true mai dal do
-                        else:false  //agar nahi milai to false mai dal do
-
-                    }
-                }
-            },
-            {
-                $project:{  //ab jis jis cheez ke zarorat hai profile per wahi frontend ko do bas
-                    fullName:1,
-                    username:1,
-                    subscribersCount:1,
-                    channelsSunscribedToCount:1,
-                    avatar:1,
-                    coverImage:1,
-                    isSubscribed:1
-
-                }
-            }
-
-
-        
-    
-
-    ])
+const channel = await User.aggregate([
+  { 
+    $match: {
+      username: username?.toLowerCase()
+    }
+  },
+  {   
+    $lookup: {
+      from: "subscriptions",
+      localField: "_id",
+      foreignField: "channel",
+      as: "subscribers"
+    }
+  },
+  {   
+    $lookup: {
+      from: "subscriptions",
+      localField: "_id",
+      foreignField: "subscriber",
+      as: "subscribedTo"
+    }
+  },
+  {
+    $addFields: {
+      subscribersCount: { $size: "$subscribers" },
+      channelsSunscribedToCount: { $size: "$subscribedTo" }
+    }
+  },
+  {
+    $addFields: {
+      isSubscribed: {  
+        $cond: {
+          if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+          then: true,
+          else: false
+        }
+      }
+    }
+  },
+  {
+    $project: {  
+      fullName: 1,
+      username: 1,
+      subscribersCount: 1,
+      channelsSunscribedToCount: 1,
+      avatar: 1,
+      coverImage: 1,
+      isSubscribed: 1
+    }
+  }
+]);
 
     if(!channel?.length){
         throw new ApiError(404,"channel doesnt exist")
@@ -410,10 +402,10 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
 })
 
 const getwatchHistory = asyncHandler(async(req,res)=>{
-    const user = User.aggregate([
+    const user = await User.aggregate([
         {
             $match:{
-                _id:new mongoose.Types.ObjectId
+                _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
         {
