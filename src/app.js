@@ -19,9 +19,11 @@ app.use(cookieParser());  //to apply crud operations from server to browser
 
 
 //import routes
-import router from './routes/user.routes.js';
+import user from './routes/user.routes.js';
+import video from './routes/video.routes.js';
 //declaration of routes
-app.use('/api/v1/users',router);
+app.use('/api/v1/users',user);
+app.use('/api/v1/videos',video)
 //http://localhost:8000/api/v1/users/register
 
 export {app}
